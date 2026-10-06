@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+node/
+node.zip
+nodejs.msi
+output/*.pdf
+!output/README.txt
+!screenshots/README.txt
