@@ -1,5 +1,5 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { FileUp, FileJson, CheckCircle2, AlertTriangle, XCircle, File, Trash2, FileCheck2, Info, Check, UploadCloud, DownloadCloud } from 'lucide-react';
+import React, { useState, useRef, useMemo } from 'react';
+import { FileJson, CheckCircle2, AlertTriangle, XCircle, File, Trash2, FileCheck2, Info, Check, UploadCloud, DownloadCloud, Sparkles, Building2, Calendar, UserCircle, FileText } from 'lucide-react';
 import { calculateSHA256 } from './services/hashService';
 import { getPdfPageCount, generatePackage } from './services/pdfService';
 import { determineStatus, isBlocking, STATUSES } from './utils/status';
@@ -10,8 +10,8 @@ function App() {
   const [tender, setTender] = useState(null);
   const [requirements, setRequirements] = useState([]);
   
-  const [files, setFiles] = useState([]); // { id, file, name, size, pages, hash, isDuplicate }
-  const [matches, setMatches] = useState({}); // reqId -> { fileId, expiryDate }
+  const [files, setFiles] = useState([]); 
+  const [matches, setMatches] = useState({}); 
   
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -238,96 +238,186 @@ function App() {
     document.body.removeChild(link);
   };
 
+  const getBadgeClass = (status) => {
+    if (status === STATUSES.OK) return 'bg-emerald-100/80 text-emerald-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border border-emerald-200/50 shadow-sm';
+    if ([STATUSES.MISSING, STATUSES.EXPIRED, STATUSES.EXPIRY_DATE_NEEDED].includes(status)) return 'bg-rose-100/80 text-rose-700 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border border-rose-200/50 shadow-sm';
+    return 'bg-slate-100/80 text-slate-600 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide border border-slate-200/50 shadow-sm';
+  };
+
   return (
-    <div className="container">
-      <div className="header-bar">
-        <div className="header-title">
-          <h1><FileCheck2 className="file-drop-icon" size={28} style={{padding: '6px', width: '40px', height: '40px'}}/> {t('appTitle', lang)}</h1>
-          <p>{t('subtitle', lang)}</p>
-        </div>
-        <div className="lang-switch">
-          <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>English</button>
-          <button className={lang === 'bn' ? 'active' : ''} onClick={() => setLang('bn')}>বাংলা</button>
-        </div>
-      </div>
-
-      {errorMsg && (
-        <div className="alert-error">
-          <AlertTriangle size={20} /> {errorMsg}
-        </div>
-      )}
-
-      {!tender && (
-        <div className="card">
-          <div 
-            className="file-drop-area" 
-            onClick={() => jsonInputRef.current.click()}
-            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
-            onDragLeave={(e) => { e.currentTarget.classList.remove('drag-over'); }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove('drag-over');
-              const file = e.dataTransfer.files[0];
-              if (file) {
-                 const evt = { target: { files: [file] } };
-                 handleJsonUpload(evt);
-              }
-            }}
-          >
-            <FileJson className="file-drop-icon" size={48} />
-            <div>
-              <p className="file-drop-text" style={{fontSize: '1.1rem'}}>{t('uploadReqPrompt', lang)}</p>
-              <p className="file-drop-subtext">{t('uploadReqSubPrompt', lang)}</p>
-              <p className="file-drop-subtext" style={{marginTop: '0.5rem'}}>{t('jsonFilesOnly', lang)}</p>
-            </div>
-            <input type="file" accept=".json" style={{display: 'none'}} ref={jsonInputRef} onChange={handleJsonUpload} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100/80 text-slate-800 font-sans pb-16">
+      
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-6 py-4 flex justify-between items-center transition-all duration-300">
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2 rounded-xl shadow-md shadow-indigo-500/20">
+            <FileCheck2 size={24} className="text-white" />
           </div>
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">
+            {t('appTitle', lang)}
+          </h1>
         </div>
-      )}
+        
+        <div className="flex bg-slate-100/80 backdrop-blur-sm p-1 rounded-lg border border-slate-200/50 shadow-inner">
+          <button 
+            className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-300 ${lang === 'en' ? 'bg-white shadow-sm text-indigo-700 scale-100' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 scale-95'}`}
+            onClick={() => setLang('en')}
+          >
+            English
+          </button>
+          <button 
+            className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all duration-300 ${lang === 'bn' ? 'bg-white shadow-sm text-indigo-700 scale-100' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 scale-95'}`}
+            onClick={() => setLang('bn')}
+          >
+            বাংলা
+          </button>
+        </div>
+      </header>
 
-      {tender && (
-        <div className="main-grid">
-          <div className="left-column">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        
+        {errorMsg && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl mb-6 flex items-center gap-3 font-medium shadow-sm animate-in slide-in-from-top-2">
+            <AlertTriangle size={20} className="shrink-0" /> 
+            <p>{errorMsg}</p>
+          </div>
+        )}
+
+        {!tender && (
+          <div className="bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 rounded-3xl p-8 max-w-3xl mx-auto mt-12 transition-all duration-500 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-slate-800 mb-2 tracking-tight">Let's build your package.</h2>
+              <p className="text-slate-500">Start by uploading the requirements payload provided by the authority.</p>
+            </div>
             
-            <div className="card" style={{padding: '1rem 2rem', background: 'var(--success-bg)', borderColor: '#a7f3d0', display: 'flex', alignItems: 'center', gap: '1rem'}}>
-              <CheckCircle2 color="var(--success)" size={24} />
+            <div 
+              className="group border-2 border-dashed border-indigo-200 bg-gradient-to-b from-indigo-50/50 to-blue-50/30 hover:from-indigo-50 hover:to-blue-100 rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-5"
+              onClick={() => jsonInputRef.current.click()}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-indigo-400'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('border-indigo-400'); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-indigo-400');
+                const file = e.dataTransfer.files[0];
+                if (file) handleJsonUpload({ target: { files: [file] } });
+              }}
+            >
+              <div className="bg-white p-4 rounded-full shadow-sm group-hover:-translate-y-2 group-hover:shadow-md transition-all duration-300">
+                <FileJson size={40} className="text-indigo-500" />
+              </div>
               <div>
-                <p style={{color: 'var(--success)', fontWeight: '600'}}>{t('reqLoadedSuccess', lang)}</p>
-                <p style={{fontSize: '0.85rem', color: '#065f46'}}>{t('tenderId', lang)}: {tender.tender_id} • {requirements.length} Requirements</p>
+                <p className="text-xl font-semibold text-slate-800">{t('uploadReqPrompt', lang)}</p>
+                <p className="text-sm text-slate-500 mt-2">{t('uploadReqSubPrompt', lang)}</p>
+                <span className="inline-block mt-4 bg-white/80 backdrop-blur-sm border border-slate-200 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-indigo-600 shadow-sm">
+                  {t('jsonFilesOnly', lang)}
+                </span>
               </div>
+              <input type="file" accept=".json" className="hidden" ref={jsonInputRef} onChange={handleJsonUpload} />
             </div>
+          </div>
+        )}
 
-            <div className="card">
-              <h2 className="card-title"><Info size={20}/> {t('tenderInfo', lang)}</h2>
-              <div className="info-grid">
-                <div className="info-item"><span className="info-label">{t('tenderId', lang)}</span><span className="info-value">{tender.tender_id}</span></div>
-                <div className="info-item"><span className="info-label">{t('title', lang)}</span><span className="info-value">{tender.title}</span></div>
-                <div className="info-item"><span className="info-label">{t('procuringEntity', lang)}</span><span className="info-value">{tender.procuring_entity}</span></div>
-                <div className="info-item"><span className="info-label">{t('bidder', lang)}</span><span className="info-value">{tender.bidder}</span></div>
-                <div className="info-item"><span className="info-label">{t('deadline', lang)}</span><span className="info-value">{tender.submission_deadline}</span></div>
+        {tender && (
+          <div className="flex flex-col gap-8 animate-in fade-in duration-500">
+            
+            {/* Top Grid: Tender Info & Status Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              {/* Tender Information */}
+              <div className="bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 rounded-2xl p-7 transition-all duration-300">
+                <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 pb-3 border-b border-slate-100">
+                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={20}/></div>
+                  {t('tenderInfo', lang)}
+                </h2>
+                
+                <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('tenderId', lang)}</p>
+                    <p className="font-semibold text-slate-800 text-sm">{tender.tender_id}</p>
+                  </div>
+                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('title', lang)}</p>
+                    <p className="font-semibold text-slate-800 text-sm line-clamp-1" title={tender.title}>{tender.title}</p>
+                  </div>
+                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><UserCircle size={12}/> {t('procuringEntity', lang)}</p>
+                    <p className="font-semibold text-slate-800 text-sm line-clamp-1">{tender.procuring_entity}</p>
+                  </div>
+                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Building2 size={12}/> {t('bidder', lang)}</p>
+                    <p className="font-semibold text-slate-800 text-sm line-clamp-1">{tender.bidder}</p>
+                  </div>
+                  <div className="col-span-2 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={12}/> {t('deadline', lang)}</p>
+                    <p className="font-semibold text-indigo-900 text-sm">{tender.submission_deadline}</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="card">
-              <h2 className="card-title"><FileCheck2 size={20}/> {t('documentRequirements', lang)}</h2>
-              <div className="req-list">
-                {requirementsWithStatus.map(req => (
-                  <div key={req.id} className="req-row">
-                    <div className="req-info">
-                      <div className="req-title">
-                        <span>{req.order}. {lang === 'bn' ? req.title_bn : req.title_en}</span>
-                        <span className={`badge badge-${req.status}`}>{t(`status_${req.status}`, lang)}</span>
-                      </div>
-                      <div className="req-meta">
-                        <span>{req.mandatory ? t('mandatory', lang) : t('optional', lang)}</span>
-                        <span>•</span>
-                        <span>{req.has_expiry ? t('hasExpiry', lang) : t('noExpiry', lang)}</span>
-                      </div>
+              {/* Status Summary */}
+              <div className="bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-100 rounded-2xl p-7 flex flex-col transition-all duration-300">
+                <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 pb-3 border-b border-slate-100">
+                  <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><Sparkles size={20}/></div>
+                  {t('validationSummary', lang)}
+                </h2>
+                
+                <div className="flex-1 flex flex-col justify-center items-center">
+                  
+                  {/* Circular Progress conceptually represented by large text */}
+                  <div className="relative mb-6">
+                    <svg className="w-32 h-32 transform -rotate-90">
+                      <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100" />
+                      <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="351.85" strokeDashoffset={351.85 - (351.85 * stats.ready) / requirements.length} className="text-emerald-500 transition-all duration-1000 ease-out" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-black text-slate-800">{stats.ready}</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">/ {requirements.length} {t('ready', lang)}</span>
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 justify-center w-full">
+                    {stats.missing > 0 && <span className="flex items-center gap-1.5 bg-rose-50 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border border-rose-200 shadow-sm"><XCircle size={14}/> {stats.missing} {t('missing', lang)}</span>}
+                    {stats.expired > 0 && <span className="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border border-orange-200 shadow-sm"><AlertTriangle size={14}/> {stats.expired} {t('expired', lang)}</span>}
+                    {stats.optNotProvided > 0 && <span className="flex items-center gap-1.5 bg-slate-50 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-200 shadow-sm"><Info size={14}/> {stats.optNotProvided} {t('optNotProvided', lang)}</span>}
                     
-                    <div className="req-actions">
-                      <div className="input-group">
+                    {blockingReasons.length === 0 && (
+                       <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider border border-emerald-200 shadow-sm"><CheckCircle2 size={16}/> Package is ready</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+
+            {/* Bottom Grid: Requirements & Upload */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Requirements & Matching */}
+              <div className="lg:col-span-2 bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 rounded-2xl p-7">
+                <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 pb-3 border-b border-slate-100">
+                  <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><FileText size={20}/></div>
+                  {t('documentRequirements', lang)}
+                </h2>
+                
+                <div className="flex flex-col gap-3">
+                  {requirementsWithStatus.map(req => (
+                    <div key={req.id} className="bg-slate-50/50 hover:bg-white border border-slate-100 hover:border-indigo-100 hover:shadow-sm rounded-xl p-5 transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 group">
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="font-bold text-slate-800 text-[15px]">{req.order}. {lang === 'bn' ? req.title_bn : req.title_en}</span>
+                          <span className={getBadgeClass(req.status)}>{t(`status_${req.status}`, lang)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                          <span className={req.mandatory ? 'text-indigo-500' : ''}>{req.mandatory ? t('mandatory', lang) : t('optional', lang)}</span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span>{req.has_expiry ? t('hasExpiry', lang) : t('noExpiry', lang)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                         <select 
+                          className="flex-1 sm:w-[220px] bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer hover:border-indigo-300"
                           value={req.match?.fileId || ''} 
                           onChange={(e) => updateMatch(req.id, e.target.value)}
                         >
@@ -340,126 +430,149 @@ function App() {
                             });
                             return (
                               <option key={f.id} value={f.id} disabled={!!usedByOther}>
-                                {f.name} {usedByOther ? '(In use / Duplicate)' : ''}
+                                {f.name} {usedByOther ? '(In use / Dup)' : ''}
                               </option>
                             )
                           })}
                         </select>
-                      </div>
-                      
-                      {req.has_expiry && req.match?.fileId && (
-                        <div className="input-group">
+                        
+                        {req.has_expiry && req.match?.fileId && (
                           <input 
                             type="date" 
+                            className="bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:border-indigo-300 w-full sm:w-auto"
                             value={req.match?.expiryDate || ''} 
                             onChange={(e) => updateExpiry(req.id, e.target.value)}
                           />
+                        )}
+                      </div>
+                      
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Uploaded Files & Generate Button */}
+              <div className="lg:col-span-1 flex flex-col gap-8">
+                
+                {/* File Uploader */}
+                <div className="bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 rounded-2xl p-7 flex-1 flex flex-col">
+                  <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 pb-3 border-b border-slate-100">
+                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><UploadCloud size={20}/></div>
+                    {t('uploadedFiles', lang)}
+                  </h2>
+                  
+                  <div 
+                    className="group border-2 border-dashed border-blue-200 bg-slate-50 hover:bg-blue-50/50 hover:border-blue-400 rounded-xl p-6 text-center cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 mb-5"
+                    onClick={() => fileInputRef.current.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-blue-400', 'bg-blue-50'); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50'); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+                      processUploadedFiles(Array.from(e.dataTransfer.files));
+                    }}
+                  >
+                    <div className="p-3 bg-white rounded-full shadow-sm group-hover:-translate-y-1 transition-transform duration-300">
+                       <UploadCloud size={24} className="text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">{t('uploadPrompt', lang)}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-1">{t('maxFiles', lang)}</p>
+                    </div>
+                    <input type="file" multiple accept=".pdf" className="hidden" ref={fileInputRef} onChange={handlePdfUpload} />
+                  </div>
+                  
+                  <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+                    {files.map(f => (
+                      <div key={f.id} className="flex justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl p-3 group hover:border-red-200 hover:shadow-md transition-all duration-300">
+                        <div className="flex gap-3 items-center min-w-0">
+                          <div className="p-2 bg-rose-50 rounded-lg shrink-0">
+                            <File size={20} className="text-rose-500" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-semibold text-slate-800 truncate" title={f.name}>{f.name}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{(f.size/1024/1024).toFixed(1)} MB • {f.pages} {t('pages', lang)}</span>
+                            </div>
+                            {f.isDuplicate && (
+                              <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide mt-1 inline-block w-max">
+                                {t('duplicate', lang)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button 
+                          className="text-slate-300 hover:text-rose-600 p-2 rounded-lg hover:bg-rose-50 transition-colors shrink-0" 
+                          onClick={() => removeFile(f.id)}
+                          title="Remove file"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    {files.length === 0 && (
+                      <div className="text-center py-10 text-slate-400 text-sm font-medium">
+                        No files uploaded yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Generate Section */}
+                <div className="bg-white/90 backdrop-blur-md shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 rounded-2xl p-7">
+                  {!generatedPdfBytes ? (
+                    <>
+                      <button 
+                        className={`w-full py-4 text-base rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${
+                          blockingReasons.length === 0 && !isGenerating 
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/30 transform hover:-translate-y-0.5' 
+                          : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                        }`}
+                        disabled={blockingReasons.length > 0 || isGenerating}
+                        onClick={handleGenerate}
+                      >
+                        {isGenerating ? (
+                          <><div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div> {t('downloading', lang)}</>
+                        ) : (
+                          <><DownloadCloud size={20}/> {t('generate', lang)}</>
+                        )}
+                      </button>
+                      
+                      {blockingReasons.length > 0 && (
+                        <div className="mt-4 p-4 bg-rose-50/80 border border-rose-100 rounded-xl">
+                          <p className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5 mb-2"><AlertTriangle size={14}/> {t('blockingErrors', lang)}</p>
+                          <ul className="list-disc pl-5 text-sm font-medium text-rose-600 space-y-1">
+                            {blockingReasons.slice(0, 3).map(br => (
+                              <li key={br.id} className="line-clamp-1" title={lang === 'bn' ? br.title_bn : br.title_en}>{br.order}. {lang === 'bn' ? br.title_bn : br.title_en}</li>
+                            ))}
+                            {blockingReasons.length > 3 && <li className="text-xs italic opacity-80">...and {blockingReasons.length - 3} more</li>}
+                          </ul>
                         </div>
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-          
-          <div className="right-column">
-            
-            <div className="card">
-              <h2 className="card-title" style={{fontSize: '1.1rem'}}><UploadCloud size={18}/> {t('validationSummary', lang)}</h2>
-              
-              <div className="summary-stats">
-                <h3>{stats.ready} / {requirements.length} {t('totalReqs', lang)}</h3>
-              </div>
-              
-              <div style={{display:'flex', flexDirection:'column', gap:'0.75rem', marginBottom: '1.5rem'}}>
-                <div className="stat-pill" style={{color: 'var(--success)'}}><CheckCircle2 size={16}/> {stats.ready} {t('ready', lang)}</div>
-                {stats.missing > 0 && <div className="stat-pill" style={{color: 'var(--error)'}}><XCircle size={16}/> {stats.missing} {t('missing', lang)}</div>}
-                {stats.expired > 0 && <div className="stat-pill" style={{color: '#d97706'}}><AlertTriangle size={16}/> {stats.expired} {t('expired', lang)}</div>}
-                {stats.optNotProvided > 0 && <div className="stat-pill" style={{color: 'var(--secondary-color)'}}><Info size={16}/> {stats.optNotProvided} {t('optNotProvided', lang)}</div>}
-              </div>
-
-              {blockingReasons.length > 0 ? (
-                <div className="blocking-error">
-                  <div className="blocking-title"><AlertTriangle size={18}/> {t('blockingErrors', lang)}</div>
-                  <ul className="blocking-list">
-                    {blockingReasons.map(br => (
-                      <li key={br.id}>{br.order}. {lang === 'bn' ? br.title_bn : br.title_en} ({t(`status_${br.status}`, lang)})</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <div className="alert-success" style={{marginBottom: '1.5rem', padding: '0.75rem'}}>
-                  <Check size={18} /> {t('allReady', lang)}
-                </div>
-              )}
-              
-              {!generatedPdfBytes ? (
-                <button 
-                  className="btn btn-generate" 
-                  disabled={blockingReasons.length > 0 || isGenerating}
-                  onClick={handleGenerate}
-                >
-                  {isGenerating ? t('downloading', lang) : t('generate', lang)}
-                </button>
-              ) : (
-                <div className="success-state">
-                  <CheckCircle2 size={48} className="success-icon" />
-                  <h3 className="success-title">{t('successGenerated', lang)}</h3>
-                  <p className="success-meta">{tender.tender_id}_Package.pdf</p>
-                  <button className="btn btn-generate" onClick={handleDownload} style={{background: 'var(--success)'}}>
-                    <DownloadCloud size={20} /> {t('downloadPackage', lang)}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="card">
-              <h2 className="card-title" style={{fontSize: '1.1rem'}}><File size={18}/> {t('uploadedFiles', lang)}</h2>
-              <div 
-                className="file-drop-area"
-                style={{padding: '2rem 1rem'}}
-                onClick={() => fileInputRef.current.click()}
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
-                onDragLeave={(e) => { e.currentTarget.classList.remove('drag-over'); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('drag-over');
-                  processUploadedFiles(Array.from(e.dataTransfer.files));
-                }}
-              >
-                <UploadCloud className="file-drop-icon" size={32} />
-                <div>
-                  <p className="file-drop-text">{t('uploadPrompt', lang)}</p>
-                  <p className="file-drop-subtext" style={{marginTop: '0.25rem'}}>{t('maxFiles', lang)}</p>
-                </div>
-                <input type="file" multiple accept=".pdf" style={{display: 'none'}} ref={fileInputRef} onChange={handlePdfUpload} />
-              </div>
-              
-              <div className="file-list">
-                {files.map(f => (
-                  <div key={f.id} className="file-item">
-                    <div className="file-item-info">
-                      <File className="file-icon" size={36} />
-                      <div className="file-details">
-                        <span className="file-name">{f.name}</span>
-                        <span className="file-meta">
-                          {(f.size/1024/1024).toFixed(2)} MB • {f.pages} {t('pages', lang)}
-                          {Object.values(matches).some(m => m.fileId === f.id) && <span style={{color: 'var(--success)', fontWeight: '600'}}>✓ {t('matched', lang)}</span>}
-                        </span>
-                        {f.isDuplicate && <span className="file-duplicate">{t('duplicate', lang)}</span>}
+                    </>
+                  ) : (
+                    <div className="text-center py-5 animate-in zoom-in duration-300">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-500 mb-4 shadow-inner">
+                        <CheckCircle2 size={32} />
                       </div>
+                      <h3 className="text-xl font-bold text-slate-800 mb-1">{t('successGenerated', lang)}</h3>
+                      <p className="text-sm font-medium text-slate-500 mb-6">{tender.tender_id}_Package.pdf</p>
+                      <button 
+                        className="w-full py-4 text-base rounded-xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/30 transition-all duration-300 flex justify-center items-center gap-2 transform hover:-translate-y-0.5" 
+                        onClick={handleDownload}
+                      >
+                        <DownloadCloud size={20} /> {t('downloadPackage', lang)}
+                      </button>
                     </div>
-                    <button className="btn btn-danger" onClick={() => removeFile(f.id)}><Trash2 size={18} /></button>
-                  </div>
-                ))}
+                  )}
+                </div>
+
               </div>
             </div>
 
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   );
 }
